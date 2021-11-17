@@ -7,12 +7,225 @@ Created on Wed Nov 17 15:18:03 2021
 
 import sys
 import os
+import numpy as np
+import cv2
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-def window():
+
+def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear):
+    font = cv2.FONT_HERSHEY_COMPLEX
+    color = (255, 255, 255)
+    thickness = 4
+
+    def process_image(working_image, watermark, pos,path):
+        text_length = len(watermark)
+        width = len(working_image) #im.size[1]
+        height = len(working_image[1])
+        #print("width: "+ str(width))
+        #print("shape[0]: "+ str(working_image.shape[0]))
+        #print("height: "+ str(height))
+        #print("shape[1]: "+ str(working_image.shape[1]))
+        new_image = working_image
+        if watermark != "":
+            if working_image.shape[0] >= 4000:
+                avg_char = 120
+                text_width = text_length * avg_char
+                fontScale = 6
+                image_ul = (0, 150)
+                image_ur = (working_image.shape[1] - text_width, 150)
+                image_ll = (0, working_image.shape[0] - 50)
+                image_lr = (working_image.shape[1] - text_width, working_image.shape[0] - 50)
+            else:
+                avg_char = 80
+                text_width = text_length * avg_char
+                fontScale = 4
+                image_ul = (0, 100)
+                image_ur = (working_image.shape[1] - text_width, 100)
+                image_ll = (0, working_image.shape[0] - 50)
+                image_lr = (working_image.shape[1] - text_width, working_image.shape[0] - 50)
+ 
+            if pos == 'ul':
+                new_image = cv2.putText(working_image, args.watermark, image_ul, font, fontScale, color, thickness, cv2.LINE_AA)
+ 
+            if pos == 'ur':
+                new_image = cv2.putText(working_image, args.watermark, image_ur, font, fontScale, color, thickness, cv2.LINE_AA)
+ 
+            if pos == 'll':
+                new_image = cv2.putText(working_image, args.watermark, image_ll, font, fontScale, color, thickness, cv2.LINE_AA)
+ 
+            if pos == 'lr':
+                new_image = cv2.putText(working_image, args.watermark, image_lr, font, fontScale, color, thickness, cv2.LINE_AA)
+
+        if not os.path.exists(path + '\\Processed'):
+            os.mkdir(path + '\\Processed')
+
+        newpath = path + '\\' + 'Processed' + '\\' + file
+       
+        cv2.imwrite(newpath, new_image)
+
+    def medianFilter(matrix):
+        outputMatrix = matrix.copy()
+        matrix = np.pad(matrix, ((1, 1), (1, 1)), 'constant') #pad matrix with 0's
+        matrixRows = len(matrix)
+        matrixColumns = len(matrix[0])
+        for i in range(1, matrixRows - 1):
+            for j in range(1, matrixColumns - 1):
+
+                MiddleInt = matrix[i][j]
+                TopRightInt = matrix[i - 1][j + 1]
+                MiddleRightInt = matrix[i][j + 1]
+                BottomRightInt = matrix[i + 1][j + 1]
+                TopLeftInt = matrix[i - 1][j-1]
+                MiddleLeftInt = matrix[i][j - 1]
+                BottomLeftInt = matrix[i - 1][j + 1]
+                TopInt = matrix[i+1][j]
+                BottomInt = matrix[i-1][j]
+                matrixOfInts = [MiddleRightInt,TopRightInt,TopInt,TopLeftInt,MiddleInt,MiddleLeftInt,BottomLeftInt,BottomInt,BottomRightInt]
+                matrixOfInts.sort() # sort array
+                outputMatrix[i-1][j-1] = matrixOfInts[5]  # there will always be 9 elements so index 5 will be median 100% of the time
+        return outputMatrix
+
+
+    def ntsc_grayscale(img):
+
+        b, g, r = cv2.split(img)
+        rows = len(r)  # grab rows and cols of any single channel matrix
+        cols = len(r[0])
+        unnormalized = b.copy()  # need a one channel matrix to copy, we will overwrite all the values
+        normalized = b.copy()
+        for i in range(rows):
+            for j in range(cols):
+                unnormalized[i][j] = ((76.245 * r[i][j] + 149.685 * g[i][j] + 29.071 * b[i][j]) / 255)  # NTSC method
+                normalized[i][j] = unnormalized[i][j] / 255  # incase we need a lil normalized one
+        return unnormalized
+
+    def getHistogramAndEqualize(img):
+        newimg = img.copy()
+        array = [None]*256            # Two empty arrays with 256 spots 0-255
+        probability = [None]*256      # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        rows = len(img)               # Use len instead of img.shape() because of pixel size
+        cols = len(img[0])            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        pixels = rows*cols
+        for i in range(rows):
+            for j in range(cols):
+                if array[img[i][j]] is None:  # if this is the first time we have see this intensity value, set it to one
+                    array[img[i][j]] = 1
+                else:                          # else increment it by one (cant increment a none value)
+                    array[img[i][j]] += 1
+        count = 0
+        for k in array:
+            if k is None:  # if we did not find any intensity for that value, set it to equal instead of none
+                probability[count] = 0
+                array[count] = 0
+            else:           # else find the probability of that intensity
+                probability[count] = k/pixels
+            count += 1
+        # ship the array off to the distribution function but let the function know the level
+        equalizedarray = cumulativeDistribution(256,probability)
+
+        for i in range(rows):
+            for j in range(cols):
+                # iterate through the array and give our equalized image the new value
+                newimg[i][j] = equalizedarray[img[i][j]]
+        return newimg
+        # plt.hist(array,bins='auto')    # for testing
+        # plt.show()
+
+
+    def cumulativeDistribution(Level,probability):
+        newarray = [None]*Level           # similar to above we make two empty arrays with the level
+        probabilityadd = [None]*Level
+        count = 0
+        for i in probability:
+            if count == 0: # if this is the first probability, just take the level-1 and times it by the probability
+                newarray[count] = round((Level - 1) * i)
+                probabilityadd[count] = i # start a tally of the probability so we dont need to do recursive functions
+            else:
+                # add the last probability to the current to keep the running tally
+                probabilityadd[count] = probabilityadd[count-1] + i
+                # take the probability total and multiply by the level - 1 and set it to that count.
+                newarray[count] = round((Level-1) * (probabilityadd[count]))
+            count += 1
+        return newarray # send the equalized array back
+
+    def equalizecolor(img):
+        ycrcb = cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB) # convert to a nice color scheme
+        channels = cv2.split(ycrcb) # use split to give us the nice color channels
+        cv2.equalizeHist(channels[0],channels[0]) # use a nice function to nicely equalize the channels
+        cv2.merge(channels,ycrcb) # nicely merge the channels back
+        cv2.cvtColor(ycrcb,cv2.COLOR_YCR_CB2BGR,img)
+        return img
     
+    for file in os.listdir(path):
+        if file.endswith('.jpg') or file.endswith('.png'):
+            working_image = cv2.imread(path + '\\' + file)
+            cv2.waitKey(100)
+
+            if NTSC:
+                working_image = ntsc_grayscale(working_image)
+                # cv2.imshow('grayscale',working_image)  # testing
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
+            if False:
+                if NTSC:  # if its already gray ya cant gray it again
+                    working_image = getHistogramAndEqualize(working_image)
+                else:  # gray it before equalizing
+                    working_image = ntsc_grayscale(working_image)
+                    working_image = getHistogramAndEqualize(working_image)
+            if Histogram:
+                working_image = equalizecolor(working_image)
+            if Median:
+                if NTSC:  # if its already gray ya cant gray it again
+                    working_image = medianFilter(working_image)
+                else:  # gray it before filtering
+                    working_image = ntsc_grayscale(working_image)
+                    working_image = medianFilter(working_image)
+            process_image(working_image, WatermarkText, WatermarkPosition,path)
+    ###############################################################################
+
+
+def window():
+               
+   def startTransformation():
+       NTSC = False
+       Log = False
+       Gamma = False
+       GammaVar = ""
+       Watermark = False
+       WatermarkText = ""
+       WatermarkPosition = ""
+       Histogram = False
+       Gaussian = False
+       Median = False
+       NonLinear = True
+       path = textEdit.toPlainText()
+       if checkBox.checkState() == 2:
+           NTSC = True
+       if checkBox_2.checkState() == 2:    
+           Log = True
+       if checkBox_3.checkState() == 2:
+           Gamma = True
+           GammaVar = str(comboBox_2.currentText())
+           print(GammaVar)
+           print(str(Gamma))
+       if checkBox_4.checkState() == 2:
+           Watermark = True
+           WatermarkText = plainTextEdit.toPlainText()
+           WatermarkPosition = str(comboBox_3.currentText())
+       if checkBox_5.checkState() == 2:
+           Histogram = True
+       if checkBox_6.checkState() == 2:
+           Gaussian = True
+       if checkBox_7.checkState() == 2:
+           Median = True
+       if checkBox_8.checkState() == 2:
+           NonLinear = True
+       #start program
+       startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear)
+       
+       
    def pick_newinput():
        dialog = QFileDialog()
        folder_path = dialog.getExistingDirectory(None, "Select Folder")
@@ -23,6 +236,7 @@ def window():
        arr = os.listdir(path)
        model.removeRows( 0, model.rowCount() )
        model.setStringList(arr)
+       
    def pick_newoutput():
        dialog = QFileDialog()
        folder_path = dialog.getExistingDirectory(None, "Select Folder")
@@ -66,10 +280,11 @@ def window():
    label.setObjectName("label")
    label.setText("Input Directory")
    #button to initiate program
-   button1 = QPushButton(w)
+   button1 = QToolButton(w)
    button1.setText("Transform Photos")
    button1.move(200,400)
    button1.setGeometry(290, 440, 201, 81)
+   button1.setObjectName("button1")
    #label above OUTPUT directory
    label_2 = QLabel(w)
    label_2.setFont(font)
@@ -165,10 +380,10 @@ def window():
    checkBox_4.setText("Add WaterMark")
    comboBox_2.setItemText(0, "0.5")
    comboBox_2.setItemText(1, "1.5")
-   comboBox_3.setItemText(0, "Upper Left")
-   comboBox_3.setItemText(1, "Lower Left")
-   comboBox_3.setItemText(2, "Upper Right")
-   comboBox_3.setItemText(3, "Lower Right")
+   comboBox_3.setItemText(0, "UL")
+   comboBox_3.setItemText(1, "LL")
+   comboBox_3.setItemText(2, "UR")
+   comboBox_3.setItemText(3, "LR")
    label_4.setText("Gamma")
    label_5.setText("Position")
    checkBox_5.setText("Histogram/Intensity Equalize")
@@ -176,9 +391,12 @@ def window():
    checkBox_7.setText("Median Filter")
    checkBox_8.setText("Nonlinear Approach for\n"" Image Enhancement")
    
+   button1.clicked.connect(startTransformation)
    inputDir.clicked.connect(pick_newinput)
    toolButton_3.clicked.connect(pick_newoutput)
 
+   
+   
    w.setWindowTitle("Photographer All in One")
    w.show()
    sys.exit(app.exec_())
