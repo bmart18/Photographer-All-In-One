@@ -12,3 +12,6 @@ You can run this program from any folder (it does not have to be in the folder o
 - Apply a Log Base transformation to grayscale images (program will convert to NTSC grayscale if not already done)
 - Apply a Gaussian Filter to all images
 - Apply a Median Noise Reduction Filter to all images
+
+<br>
+### Photo of Application
