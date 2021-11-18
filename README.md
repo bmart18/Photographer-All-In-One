@@ -13,5 +13,7 @@ You can run this program from any folder (it does not have to be in the folder o
 - Apply a Gaussian Filter to all images
 - Apply a Median Noise Reduction Filter to all images
 
-<br>
-### Photo of Application
+
+## Photo of Application
+---
+<img src="GUIpic.png" width=500>
