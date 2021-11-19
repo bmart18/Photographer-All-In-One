@@ -239,7 +239,12 @@ def window():
        model.removeRows(0, model.rowCount())
        if path!= "":
         arr = os.listdir(path)
-        model.setStringList(arr)
+        temp = []
+        for i in arr:
+            if i.endswith('.jpg') or i.endswith('.png'):
+                #print(i)  #  testing
+                temp.append(i)
+        model.setStringList(temp)
        
    def pick_newoutput():
        dialog = QFileDialog()
