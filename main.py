@@ -9,6 +9,7 @@ import sys
 import os
 import numpy as np
 import cv2
+import math
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -71,7 +72,25 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
             os.mkdir(temppath + '\\Processed')
         newpath = temppath + '\\' + 'Processed' + '\\' + file #make the full path for writing
         cv2.imwrite(newpath, new_image)
-
+        
+    def LogTrans(image):
+        cValue = 255/(math.log(1+255,10))
+        LogTrans = image.copy()
+        rows,cols = LogTrans.shape
+        for i in range(rows):
+            for j in range(cols):
+                LogTrans[i][j] = cValue*math.log(1+abs(LogTrans[i][j]),10)
+        return LogTrans
+    
+    def GammaTrans(image,gamma):
+        cValue = 255/(255**gamma)
+        gammaTransImage = image.copy()
+        rows,cols = gammaTransImage.shape
+        for i in range(rows):
+            for j in range(cols):
+                gammaTransImage[i][j] = cValue * (gammaTransImage[i][j]**gamma)
+        return gammaTransImage
+    
     def medianFilter(matrix):
         outputMatrix = matrix.copy()
         matrix = np.pad(matrix, ((1, 1), (1, 1)), 'constant') #pad matrix with 0's
@@ -175,6 +194,18 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
                 # cv2.imshow('grayscale',working_image)  # testing
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
+            if Log:
+                if NTSC:  # if its already gray ya cant gray it again
+                    working_image = LogTrans(working_image)
+                else:
+                    working_image = ntsc_grayscale(working_image)
+                    working_image = LogTrans(working_image)
+            if Gamma:
+                if NTSC:  # if its already gray ya cant gray it again
+                    working_image = GammaTrans(working_image,GammaVar)
+                else:
+                    working_image = ntsc_grayscale(working_image)
+                    working_image = GammaTrans(working_image,GammaVar)
             if False: #histogram gray
                 if NTSC:  # if its already gray ya cant gray it again
                     working_image = getHistogramAndEqualize(working_image)
