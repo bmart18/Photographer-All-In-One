@@ -14,12 +14,12 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 
-def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory):
+def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory,Resolution):
     font = cv2.FONT_HERSHEY_COMPLEX
     color = (255, 255, 255)
     thickness = 4
 
-    def process_image(working_image, watermark, pos,path):
+    def process_image(working_image, watermark, pos,path,Resolution):
         text_length = len(watermark)
         width = len(working_image) #im.size[1]
         height = len(working_image[1])
@@ -28,35 +28,40 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
         #print("height: "+ str(height))
         #print("shape[1]: "+ str(working_image.shape[1]))
         new_image = working_image
+        if not (Resolution == "Keep The same"):
+            res = Resolution.split("x")
+            print(int(res[0]))
+            new_image = cv2.resize(working_image,(int(res[0]),int(res[1])))
+
         if watermark != "":
-            if working_image.shape[0] >= 4000:
+            if new_image.shape[0] >= 4000:
                 avg_char = 120
                 text_width = text_length * avg_char
                 fontScale = 6
                 image_ul = (0, 150)
-                image_ur = (working_image.shape[1] - text_width, 150)
-                image_ll = (0, working_image.shape[0] - 50)
-                image_lr = (working_image.shape[1] - text_width, working_image.shape[0] - 50)
+                image_ur = (new_image.shape[1] - text_width, 150)
+                image_ll = (0, new_image.shape[0] - 50)
+                image_lr = (new_image.shape[1] - text_width, new_image.shape[0] - 50)
             else:
-                avg_char = 80
+                avg_char = 40
                 text_width = text_length * avg_char
                 fontScale = 4
                 image_ul = (0, 100)
-                image_ur = (working_image.shape[1] - text_width, 100)
-                image_ll = (0, working_image.shape[0] - 50)
-                image_lr = (working_image.shape[1] - text_width, working_image.shape[0] - 50)
+                image_ur = (new_image.shape[1] - text_width, 100)
+                image_ll = (0, new_image.shape[0] - 50)
+                image_lr = (new_image.shape[1] - text_width, new_image.shape[0] - 50)
  
             if pos == 'UL':
-                new_image = cv2.putText(working_image, watermark, image_ul, font, fontScale, color, thickness, cv2.LINE_AA)
+                new_image = cv2.putText(new_image, watermark, image_ul, font, fontScale, color, thickness, cv2.LINE_AA)
  
             if pos == 'UR':
-                new_image = cv2.putText(working_image, watermark, image_ur, font, fontScale, color, thickness, cv2.LINE_AA)
+                new_image = cv2.putText(new_image, watermark, image_ur, font, fontScale, color, thickness, cv2.LINE_AA)
  
             if pos == 'LL':
-                new_image = cv2.putText(working_image, watermark, image_ll, font, fontScale, color, thickness, cv2.LINE_AA)
+                new_image = cv2.putText(new_image, watermark, image_ll, font, fontScale, color, thickness, cv2.LINE_AA)
  
             if pos == 'LR':
-                new_image = cv2.putText(working_image, watermark, image_lr, font, fontScale, color, thickness, cv2.LINE_AA)
+                new_image = cv2.putText(new_image, watermark, image_lr, font, fontScale, color, thickness, cv2.LINE_AA)
 
         if(OutputDirectory == ""): #check is user sepcified output path
             temppath = path
@@ -170,7 +175,7 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
                 # cv2.imshow('grayscale',working_image)  # testing
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
-            if False:
+            if False: #histogram gray
                 if NTSC:  # if its already gray ya cant gray it again
                     working_image = getHistogramAndEqualize(working_image)
                 else:  # gray it before equalizing
@@ -184,7 +189,7 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
                 else:  # gray it before filtering
                     working_image = ntsc_grayscale(working_image)
                     working_image = medianFilter(working_image)
-            process_image(working_image, WatermarkText, WatermarkPosition,path)
+            process_image(working_image, WatermarkText, WatermarkPosition,path,Resolution)
     ###############################################################################
 
 
@@ -199,6 +204,7 @@ def window():
        WatermarkText = ""
        WatermarkPosition = ""
        OutputDirectory = ""
+       Resolution = comboBox.currentText()
        Histogram = False
        Gaussian = False
        Median = False
@@ -226,7 +232,7 @@ def window():
        if checkBox_8.checkState() == 2:
            NonLinear = True
        #start program
-       startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory)
+       startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory,Resolution)
        
        
    def pick_newinput():
@@ -281,7 +287,9 @@ def window():
    comboBox.setGeometry(10, 240, 221, 41)
    comboBox.setObjectName("comboBox")
    comboBox.addItem("")
-   comboBox.setItemText(0,"1080x720")
+   comboBox.addItem("")
+   comboBox.setItemText(0,"Keep The same")
+   comboBox.setItemText(1, "1080x720")
    #label above INPUT directory
    label = QLabel(w)
    label.setGeometry(10, 80, 211, 31)
@@ -395,7 +403,7 @@ def window():
    comboBox_3.setItemText(3, "LR")
    label_4.setText("Gamma")
    label_5.setText("Position")
-   checkBox_5.setText("Histogram/Intensity Equalize")
+   checkBox_5.setText("Histogram/Intensity Equalize (Color)")
    checkBox_6.setText("Gaussian Filter")
    checkBox_7.setText("Median Filter")
    checkBox_8.setText("Nonlinear Approach for\n"" Image Enhancement")
