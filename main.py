@@ -14,7 +14,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 
-def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear):
+def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory):
     font = cv2.FONT_HERSHEY_COMPLEX
     color = (255, 255, 255)
     thickness = 4
@@ -46,23 +46,25 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
                 image_ll = (0, working_image.shape[0] - 50)
                 image_lr = (working_image.shape[1] - text_width, working_image.shape[0] - 50)
  
-            if pos == 'ul':
-                new_image = cv2.putText(working_image, args.watermark, image_ul, font, fontScale, color, thickness, cv2.LINE_AA)
+            if pos == 'UL':
+                new_image = cv2.putText(working_image, watermark, image_ul, font, fontScale, color, thickness, cv2.LINE_AA)
  
-            if pos == 'ur':
-                new_image = cv2.putText(working_image, args.watermark, image_ur, font, fontScale, color, thickness, cv2.LINE_AA)
+            if pos == 'UR':
+                new_image = cv2.putText(working_image, watermark, image_ur, font, fontScale, color, thickness, cv2.LINE_AA)
  
-            if pos == 'll':
-                new_image = cv2.putText(working_image, args.watermark, image_ll, font, fontScale, color, thickness, cv2.LINE_AA)
+            if pos == 'LL':
+                new_image = cv2.putText(working_image, watermark, image_ll, font, fontScale, color, thickness, cv2.LINE_AA)
  
-            if pos == 'lr':
-                new_image = cv2.putText(working_image, args.watermark, image_lr, font, fontScale, color, thickness, cv2.LINE_AA)
+            if pos == 'LR':
+                new_image = cv2.putText(working_image, watermark, image_lr, font, fontScale, color, thickness, cv2.LINE_AA)
 
-        if not os.path.exists(path + '\\Processed'):
-            os.mkdir(path + '\\Processed')
-
-        newpath = path + '\\' + 'Processed' + '\\' + file
-       
+        if(OutputDirectory == ""): #check is user sepcified output path
+            temppath = path
+        else:
+            temppath = OutputDirectory
+        if not os.path.exists(temppath + '\\Processed'): #if there isnt a processed directory make one
+            os.mkdir(temppath + '\\Processed')
+        newpath = temppath + '\\' + 'Processed' + '\\' + file #make the full path for writing
         cv2.imwrite(newpath, new_image)
 
     def medianFilter(matrix):
@@ -196,6 +198,7 @@ def window():
        Watermark = False
        WatermarkText = ""
        WatermarkPosition = ""
+       OutputDirectory = ""
        Histogram = False
        Gaussian = False
        Median = False
@@ -223,7 +226,7 @@ def window():
        if checkBox_8.checkState() == 2:
            NonLinear = True
        #start program
-       startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear)
+       startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory)
        
        
    def pick_newinput():
@@ -233,9 +236,10 @@ def window():
        getFiles(folder_path)
        
    def getFiles(path):
-       arr = os.listdir(path)
-       model.removeRows( 0, model.rowCount() )
-       model.setStringList(arr)
+       model.removeRows(0, model.rowCount())
+       if path!= "":
+        arr = os.listdir(path)
+        model.setStringList(arr)
        
    def pick_newoutput():
        dialog = QFileDialog()
