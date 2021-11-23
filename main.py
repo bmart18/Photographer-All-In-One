@@ -25,10 +25,10 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
         text_length = len(watermark)
         width = len(working_image) #im.size[1]
         height = len(working_image[1])
-        print("width: "+ str(width))
-        print("shape[0]: "+ str(working_image.shape[0]))
-        print("height: "+ str(height))
-        print("shape[1]: "+ str(working_image.shape[1]))
+        #print("width: "+ str(width))
+        #print("shape[0]: "+ str(working_image.shape[0]))
+        #print("height: "+ str(height))
+        #print("shape[1]: "+ str(working_image.shape[1]))
         new_image = working_image
         if not (Resolution == "Keep The same"):
             res = Resolution.split("x")
@@ -222,6 +222,7 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
             else:
                 working_image = cv2.cvtColor(working_image, cv2.COLOR_YCR_CB2BGR)
                 process_image(working_image, WatermarkText, WatermarkPosition, path, Resolution)
+    #print("All Done!")
     ###############################################################################
 
 
@@ -249,8 +250,8 @@ def window():
        if checkBox_3.checkState() == 2:
            Gamma = True
            GammaVar = str(comboBox_2.currentText())
-           print(GammaVar)
-           print(str(Gamma))
+           #print(GammaVar)
+           #print(str(Gamma))
        if checkBox_4.checkState() == 2:
            Watermark = True
            WatermarkText = plainTextEdit.toPlainText()
@@ -265,8 +266,16 @@ def window():
            NonLinear = True
        #start program
        startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory,Resolution)
-       
-       
+       showDialog()
+
+   def showDialog():
+       msgBox = QMessageBox()
+       msgBox.setIcon(QMessageBox.Information)
+       msgBox.setText("All Photos Are Done Processing!")
+       msgBox.setWindowTitle("All Done")
+       msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+       returnValue = msgBox.exec()
+
    def pick_newinput():
        dialog = QFileDialog()
        folder_path = dialog.getExistingDirectory(None, "Select Folder")
@@ -291,7 +300,7 @@ def window():
        
    app = QApplication(sys.argv)
    w = QWidget()
-   w.setGeometry(100,100,887, 590)
+   w.setGeometry(500,250,887, 590)
    
    model = QStringListModel(w)
    #font
@@ -320,8 +329,12 @@ def window():
    comboBox.setObjectName("comboBox")
    comboBox.addItem("")
    comboBox.addItem("")
+   comboBox.addItem("")
+   comboBox.addItem("")
    comboBox.setItemText(0,"Keep The same")
    comboBox.setItemText(1, "1080x720")
+   comboBox.setItemText(2, "1280x854")
+   comboBox.setItemText(3, "1440x960")
    #label above INPUT directory
    label = QLabel(w)
    label.setGeometry(10, 80, 211, 31)
@@ -374,6 +387,8 @@ def window():
    comboBox_2 = QComboBox(w)
    comboBox_2.setGeometry(770, 200, 73, 22)
    comboBox_2.setObjectName("comboBox_2")
+   comboBox_2.addItem("")
+   comboBox_2.addItem("")
    comboBox_2.addItem("")
    comboBox_2.addItem("")
    
@@ -429,6 +444,8 @@ def window():
    checkBox_4.setText("Add WaterMark")
    comboBox_2.setItemText(0, "0.5")
    comboBox_2.setItemText(1, "1.5")
+   comboBox_2.setItemText(2, "3")
+   comboBox_2.setItemText(3, "5")
    comboBox_3.setItemText(0, "UL")
    comboBox_3.setItemText(1, "LL")
    comboBox_3.setItemText(2, "UR")
