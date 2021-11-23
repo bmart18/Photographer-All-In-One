@@ -10,6 +10,7 @@ You can run this program from any folder (it does not have to be in the folder o
 - Equalize All Color Images using histogram equalization
 - Equalize All Grayscale Images using histogram equalization (program will apply to grayscale or color image)
 - Apply a Log Base transformation to grayscale images (program will apply to grayscale or color image)
+- Apply a Gamma transformation to grayscale images (program will apply to grayscale or color image)
 - Apply a Gaussian Filter to all images (program will apply to grayscale or color image)
 - Apply a Median Noise Reduction Filter to all images (program will apply to grayscale or color image)
 
