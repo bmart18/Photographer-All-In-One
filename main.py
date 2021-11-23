@@ -13,6 +13,7 @@ import math
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from scipy.ndimage import gaussian_filter
 
 
 def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkPosition,Histogram,Gaussian,Median,NonLinear,OutputDirectory,Resolution):
@@ -46,9 +47,9 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
             else:
                 avg_char = 40
                 text_width = text_length * avg_char
-                fontScale = 4
-                image_ul = (0, 100)
-                image_ur = (new_image.shape[1] - text_width, 100)
+                fontScale = 2
+                image_ul = (0, 50)
+                image_ur = (new_image.shape[1] - text_width, 50)
                 image_ll = (0, new_image.shape[0] - 50)
                 image_lr = (new_image.shape[1] - text_width, new_image.shape[0] - 50)
  
@@ -187,17 +188,22 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
             else:
                 working_image = cv2.cvtColor(working_image, cv2.COLOR_BGR2YCR_CB)
             if Log:
-                if NTSC:  # if its already gray ya cant gray it again
+                if NTSC:
                     working_image = LogTrans(working_image)
                 else:
                     working_image[:,:,0] = LogTrans(working_image[:,:,0])
             if Gamma:
-                if NTSC:  # if its already gray ya cant gray it again
+                if NTSC:  
                     working_image = GammaTrans(working_image,GammaVar)
                 else:
                     working_image[:,:,0] = GammaTrans(working_image[:,:,0],float(GammaVar))
+            if Gaussian:
+                if NTSC:
+                    working_image = gaussian_filter(working_image,2)
+                else:
+                    working_image[:,:,0] = gaussian_filter(working_image[:,:,0], 2)
             if False: #histogram gray
-                if NTSC:  # if its already gray ya cant gray it again
+                if NTSC: 
                     working_image = getHistogramAndEqualize(working_image)
                 else:  # gray it before equalizing
                     working_image = ntsc_grayscale(working_image)
