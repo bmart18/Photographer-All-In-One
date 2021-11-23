@@ -25,10 +25,10 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
         text_length = len(watermark)
         width = len(working_image) #im.size[1]
         height = len(working_image[1])
-        #print("width: "+ str(width))
-        #print("shape[0]: "+ str(working_image.shape[0]))
-        #print("height: "+ str(height))
-        #print("shape[1]: "+ str(working_image.shape[1]))
+        print("width: "+ str(width))
+        print("shape[0]: "+ str(working_image.shape[0]))
+        print("height: "+ str(height))
+        print("shape[1]: "+ str(working_image.shape[1]))
         new_image = working_image
         if not (Resolution == "Keep The same"):
             res = Resolution.split("x")
@@ -116,7 +116,6 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
 
 
     def ntsc_grayscale(img):
-
         b, g, r = cv2.split(img)
         rows = len(r)  # grab rows and cols of any single channel matrix
         cols = len(r[0])
@@ -176,61 +175,53 @@ def startProgram(path,NTSC,Log,Gamma,GammaVar,Watermark,WatermarkText,WatermarkP
                 newarray[count] = round((Level-1) * (probabilityadd[count]))
             count += 1
         return newarray # send the equalized array back
-
-    def equalizecolor(img):
-        ycrcb = cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB) # convert to a nice color scheme
-        channels = cv2.split(ycrcb) # use split to give us the nice color channels
-        cv2.equalizeHist(channels[0],channels[0]) # use a nice function to nicely equalize the channels
-        cv2.merge(channels,ycrcb) # nicely merge the channels back
-        cv2.cvtColor(ycrcb,cv2.COLOR_YCR_CB2BGR,img)
-        return img
     
     for file in os.listdir(path):
-        if file.endswith('.jpg') or file.endswith('.png'):
+        if file.endswith('.jpg') or file.endswith('.png') or file.endswith('.jpeg'):
             working_image = cv2.imread(path + '\\' + file)
             cv2.waitKey(100)
-
             if NTSC:
                 working_image = ntsc_grayscale(working_image)
                 # cv2.imshow('grayscale',working_image)  # testing
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
+            else:
+                working_image = cv2.cvtColor(working_image, cv2.COLOR_BGR2YCR_CB)
             if Log:
-                if NTSC:  # if its already gray ya cant gray it again
+                if NTSC:
                     working_image = LogTrans(working_image)
                 else:
-                    working_image = ntsc_grayscale(working_image)
-                    working_image = LogTrans(working_image)
+                    working_image[:,:,0] = LogTrans(working_image[:,:,0])
             if Gamma:
-                if NTSC:  # if its already gray ya cant gray it again
+                if NTSC:  
                     working_image = GammaTrans(working_image,GammaVar)
                 else:
-<<<<<<< Updated upstream
-                    working_image = ntsc_grayscale(working_image)
-                    working_image = GammaTrans(working_image,GammaVar)
-=======
                     working_image[:,:,0] = GammaTrans(working_image[:,:,0],float(GammaVar))
             if Gaussian:
                 if NTSC:
                     working_image = gaussian_filter(working_image,2)
                 else:
                     working_image[:,:,0] = gaussian_filter(working_image[:,:,0], 2)
->>>>>>> Stashed changes
             if False: #histogram gray
-                if NTSC:  # if its already gray ya cant gray it again
+                if NTSC: 
                     working_image = getHistogramAndEqualize(working_image)
                 else:  # gray it before equalizing
                     working_image = ntsc_grayscale(working_image)
                     working_image = getHistogramAndEqualize(working_image)
             if Histogram:
-                working_image = equalizecolor(working_image)
+                working_image[:,:,0] = cv2.equalizeHist(working_image[:,:,0])
+                #cv2.equalizeHist(channels[0],channels[0])
             if Median:
                 if NTSC:  # if its already gray ya cant gray it again
                     working_image = medianFilter(working_image)
                 else:  # gray it before filtering
-                    working_image = ntsc_grayscale(working_image)
-                    working_image = medianFilter(working_image)
-            process_image(working_image, WatermarkText, WatermarkPosition,path,Resolution)
+                    working_image[:,:,0] = medianFilter(working_image[:,:,0])
+
+            if NTSC:
+                process_image(working_image, WatermarkText, WatermarkPosition,path,Resolution)
+            else:
+                working_image = cv2.cvtColor(working_image, cv2.COLOR_YCR_CB2BGR)
+                process_image(working_image, WatermarkText, WatermarkPosition, path, Resolution)
     ###############################################################################
 
 
@@ -288,7 +279,7 @@ def window():
         arr = os.listdir(path)
         temp = []
         for i in arr:
-            if i.endswith('.jpg') or i.endswith('.png'):
+            if i.endswith('.jpg') or i.endswith('.png') or i.endswith('.jpeg'):
                 #print(i)  #  testing
                 temp.append(i)
         model.setStringList(temp)
